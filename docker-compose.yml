@@ -1,36 +1,45 @@
 version: '3'
 
 services:
-  nginx:
-    image: nginx:latest
-    volumes:
-      - ./:/var/www
-      - ./_docker/nginx/conf.d:/etc/nginx/conf.d
-    ports:
-      - 8876:80
-    depends_on:
-      - app
-    container_name: shop_nginx
+    # Контейнер для приложения Laravel, который мы настроили в Dockerfile выше
+    app:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: basket-shop
+        container_name: basket-shop
+        restart: unless-stopped
+        volumes:
+            - .:/var/www/html
+        environment:
+            - DB_HOST=mysql
+            - DB_PORT=3306
+            - DB_DATABASE=basket_shop
+            - DB_USERNAME=root
+            - DB_PASSWORD=AbuMalik333
+        depends_on:
+            - mysql
+        networks:
+            - app-network
 
-  app:
-    build:
-      context: .
-      dockerfile: _docker/app/Dockerfile
-    volumes:
-      - ./:/var/www
-    container_name: shop_app
-    depends_on:
-      - db
+    # Контейнер для базы данных MySQL
+    mysql:
+        image: mysql:8.0
+        container_name: basket-shop-mysql
+        restart: unless-stopped
+        environment:
+            MYSQL_DATABASE: basket_shop
+            MYSQL_ROOT_PASSWORD: secret
+            MYSQL_USER: root
+            MYSQL_PASSWORD: AbuMalik333
+        volumes:
+            - mysql-data:/var/lib/mysql
+        networks:
+            - app-network
 
-  db:
-    image: mysql:8.0
-    restart: always
-    volumes:
-      - ./tmp/db:/var/lib/mysql
-    environment:
-        MYSQL_DATABASE: shop
-        MYSQL_ROOT_PASSWORD: root
-    ports:
-      - 8101:3306
-    command: mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci
-    container_name: shop_db
+volumes:
+    mysql-data:
+
+networks:
+    app-network:
+        driver: bridge
